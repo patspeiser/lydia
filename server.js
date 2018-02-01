@@ -10,7 +10,7 @@ var PORT = process.env.PORT || 3001;
 db.sync({force: true}).then( ()=>{
     io.on('connection', (socket)=>{
         setInterval( ()=>{
-            socket.emit('yo');
+            socket.emit('getPrices');
         }, 1000)
     });
     server.listen(PORT, ()=>{

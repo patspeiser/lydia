@@ -21,10 +21,21 @@ const Trade   = db.define('trade', {
 	M: {type: db.Sequelize.BOOLEAN}, 
 });
 
+const Symbol = db.define('symbol', {
+	symbol: {type: Sequelize.STRING}
+});
+
+const Price = db.define('price', {
+	symbol: {type: Sequelize.STRING},
+	price:  {type: Sequelize.FLOAT}
+});
+
 module.exports = {
 	db: db,
 	Op: Op,
 	Models: {
-		Trade: Trade
+		Trade: Trade,
+		Symbol: Symbol,
+		Price: Price
 	}
 };
