@@ -84,7 +84,16 @@ function createRecommendation(rows){
 		};
 	});
 	console.log(this.stats);
-	Models.Rec.create(this.stats);
+	Models.Rec.create({
+		highest_gain: this.stats.highestGain,
+		highest_loss: this.stats.highestLoss,
+		highest_gain_symbol: this.stats.highestGainSymbol,
+		highest_gain_most_recent_price: this.stats.highestGainMostRecentPrice,
+		highest_gain_average_price: this.stats.highestGainAveragePrice,
+		highest_loss_symbol: this.stats.highestLossSymbol,
+		highest_loss_most_recent_price: this.stats.highestLossMostRecentPrice,
+		highst_loss_average_price:  this.stats.highestLostAveragePrice
+	});
 	//determineTransaction(this.stats);
 };
 

@@ -22,14 +22,14 @@ const Trade   = db.define('trade', {
 });
 
 const Rec = db.define('rec', {
-	highestGain: 				{type: db.Sequelize.FLOAT},
-	highestLoss: 				{type: db.Sequelize.FLOAT},
-	highestGainSymbol: 			{type: db.Sequelize.STRING},
-	highestGainMostRecentPrice: {type: db.Sequelize.FLOAT},
-	highestGainAveragePrice: 	{type: db.Sequelize.FLOAT},
-	highestLossSymbol:  	 	{type: db.Sequelize.STRING}, 
-	highestLossMostRecentPrice: {type: db.Sequelize.FLOAT},
-	highestLossAveragePrice: 	{type: db.Sequelize.FLOAT},
+	highest_gain: 					{type: db.Sequelize.FLOAT},
+	highest_loss: 					{type: db.Sequelize.FLOAT},
+	highest_gain_symbol: 			{type: db.Sequelize.STRING},
+	highest_gain_most_recent_price: {type: db.Sequelize.FLOAT},
+	highest_gain_average_price: 	{type: db.Sequelize.FLOAT},
+	highest_loss_symbol:  	 		{type: db.Sequelize.STRING}, 
+	highest_loss_most_recent_price: {type: db.Sequelize.FLOAT},
+	highest_loss_average_price: 	{type: db.Sequelize.FLOAT},
 })
 
 const Symbol = db.define('symbol', {
