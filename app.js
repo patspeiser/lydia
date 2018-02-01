@@ -26,7 +26,7 @@ socket.on('analyzePrices', ()=>{
 	analyzePrices().then( (analyzedPrices)=>{
 		console.log(chalk.red('analyzedprices'));
 		analyzedPrices.forEach( (price) =>{ 
-			console.log('#', JSON.stringify(price));
+			console.log('#', getDataSetInfo(price));
 		})
 	});
 });
@@ -70,7 +70,7 @@ function analyzePrices(){
 						}
 					},
 					order: [['id', 'DESC']],
-					limit: 250
+					limit: 500
 				}));
 			});
 			return Promise.all(this.promises).then( (data)=>{
@@ -83,6 +83,7 @@ function analyzePrices(){
 };
 
 function getDataSetInfo(dataSet){
+	this.symbol = dataSet[0].symbol;
 	if(dataSet.length > 0){
 		this.start = Math.floor(dataSet.length / 10);
 		this.end   = Math.floor(9 * dataSet.length / 10);
@@ -130,7 +131,7 @@ function getDataSetInfo(dataSet){
 		this.averagePrice = getAveragePrice(this.first, this.second); 
 		this.normalizedSlope = getNormalizedSlope(this.slope, this.averagePrice);
 		this.data = {
-			product_id:         this.product_id,
+			symbol:             this.symbol,
 			first: 				this.first,
 			second: 			this.second,
 			slope: 				this.slope,
@@ -140,6 +141,6 @@ function getDataSetInfo(dataSet){
 			mostRecentPrice: 	this.mostRecentPrice
 		};
 
-	}
+	};
 	return this.data;
 };
