@@ -25,9 +25,12 @@ socket.on('getPrices', (payload)=>{
 socket.on('analyzePrices', ()=>{
 	analyzePrices().then( (analyzedPrices)=>{
 		console.log(chalk.red('analyzedprices'));
+		this.dataSets = [];
 		analyzedPrices.forEach( (price) =>{ 
-			console.log('#', getDataSetInfo(price));
-		})
+			this.dataSets.push( getDataSetInfo(price) );
+		});
+		//socket.emit('freshDataSets', {analyzedPriceList: this.dataSets});
+		createRecommendation(this.dataSets);
 	});
 });
 
@@ -54,6 +57,36 @@ getSymbols().then( (symbols)=>{
 	})
 });
 */
+
+function createRecommendation(rows){
+	//console.log(chalk.gray('creating recommendations'));
+	this.stats = {
+		highestGain : 0,
+		highestLoss : 0
+	}
+	rows.forEach( (row)=>{
+		this.dataSet = row;
+		if (this.dataSet.slope > 0){
+			if(this.dataSet.gainOrLoss > this.stats.highestGain){
+				this.stats.highestGain = this.dataSet.gainOrLoss;
+				this.stats['highestGainSymbol'] = this.dataSet.symbol;
+				this.stats['highestGainMostRecentPrice'] = this.dataSet.mostRecentPrice;
+				this.stats['highestGainAveragePrice'] = this.dataSet.averagePrice;
+			};
+		};
+		if (this.dataSet.slope < 0){
+			if(this.dataSet.gainOrLoss > this.stats.highestLoss){
+				this.stats.highestLoss = this.dataSet.gainOrLoss;
+				this.stats['highestLossSymbol'] = this.dataSet.symbol;
+				this.stats['highestLossMostRecentPrice'] = this.dataSet.mostRecentPrice;
+				this.stats['highestLossAveragePrice'] = this.dataSet.averagePrice;
+			}	
+		};
+	});
+	console.log(this.stats);
+	Models.Rec.create(this.stats);
+	//determineTransaction(this.stats);
+};
 
 function analyzePrices(){
 	this.now = new Date();

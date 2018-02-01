@@ -17,6 +17,9 @@ db.sync({force: false}).then( ()=>{
             console.log(chalk.gray('analyzePrices'));
             socket.emit('analyzePrices');
         }, 10000);
+        socket.on('freshDataSets', (payload) =>{
+            //console.log(payload);
+        });
     });
     server.listen(PORT, ()=>{
         console.log('binance up ...', PORT);

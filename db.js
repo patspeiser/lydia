@@ -21,6 +21,17 @@ const Trade   = db.define('trade', {
 	M: {type: db.Sequelize.BOOLEAN}, 
 });
 
+const Rec = db.define('rec', {
+	highestGain: 				{type: db.Sequelize.FLOAT},
+	highestLoss: 				{type: db.Sequelize.FLOAT},
+	highestGainSymbol: 			{type: db.Sequelize.STRING},
+	highestGainMostRecentPrice: {type: db.Sequelize.FLOAT},
+	highestGainAveragePrice: 	{type: db.Sequelize.FLOAT},
+	highestLossSymbol:  	 	{type: db.Sequelize.STRING}, 
+	highestLossMostRecentPrice: {type: db.Sequelize.FLOAT},
+	highestLossAveragePrice: 	{type: db.Sequelize.FLOAT},
+})
+
 const Symbol = db.define('symbol', {
 	symbol: {type: Sequelize.STRING}
 });
@@ -36,6 +47,7 @@ module.exports = {
 	Models: {
 		Trade: Trade,
 		Symbol: Symbol,
-		Price: Price
+		Price: Price,
+		Rec: Rec
 	}
 };
