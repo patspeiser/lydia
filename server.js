@@ -7,7 +7,7 @@ const chalk = require('chalk');
 var SYNC = process.env.SYNC || false;
 var PORT = process.env.PORT || 3001;
 
-db.sync({force: true}).then( ()=>{
+db.sync({force: false}).then( ()=>{
     io.on('connection', (socket)=>{
         setInterval( ()=>{
             console.log(chalk.gray('getPrices'));

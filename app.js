@@ -24,10 +24,12 @@ socket.on('getPrices', (payload)=>{
 
 socket.on('analyzePrices', ()=>{
 	analyzePrices().then( (analyzedPrices)=>{
-		console.log(chalk.red('analyzedprices'), analyzedPrices);
+		console.log(chalk.red('analyzedprices'));
+		analyzedPrices.forEach( (price) =>{ 
+			console.log('#', JSON.stringify(price));
+		})
 	});
 });
-
 
 app.get('/', (req, res, next)=>{
 	res.send('200');
@@ -68,13 +70,76 @@ function analyzePrices(){
 						}
 					},
 					order: [['id', 'DESC']],
-					limit: 500
+					limit: 250
 				}));
 			});
 			return Promise.all(this.promises).then( (data)=>{
 				if(data)
-					return data;
+					resolve(data);
+				reject('analyzePrices rejection. should make this useful');
 			});
 		});
 	});
+};
+
+function getDataSetInfo(dataSet){
+	if(dataSet.length > 0){
+		this.start = Math.floor(dataSet.length / 10);
+		this.end   = Math.floor(9 * dataSet.length / 10);
+		this.mostRecentPrice = dataSet[dataSet.length-1].price;
+		function createPoint(point, type){
+			this.yTotal = 0;
+			this.totalPoints = 0;
+			this.product_id = dataSet[0].product_id;
+			if(type === 'first'){
+				for(let i=0; i<=point; i++){
+					this.yTotal+=dataSet[i].price;
+					this.totalPoints+=1;
+				}
+			}
+			if(type === 'second'){
+				for(let i=point; i<=dataSet.length-1; i++){
+					this.yTotal+=dataSet[i].price;
+					this.totalPoints+=1;
+				}
+			}
+			this.y = this.yTotal / this.totalPoints;
+			return [point, this.y];
+		};
+		function calculateSlope(first, second){
+			this.num = second[1] - first[1];
+			this.denom = second[0] - first[0];
+			this.slope = this.num / this.denom;
+			return this.slope;
+		};
+		function getAveragePrice(first, second){
+			this.averagePrice = (this.first[1] + this.second[1]) / 2
+			return this.averagePrice; 
+		}
+		function getNormalizedSlope(slope, average){
+			return slope / average;
+		}
+		function getGainOrLoss(first, second){
+			this.result = Math.abs( 1 - (this.second[1] / this.first[1]) ) * 100;
+			return this.result;
+		}
+		this.first  = createPoint(this.start, 'first');
+		this.second = createPoint(this.end, 'second');
+		this.slope = calculateSlope(this.first, this.second);
+		this.gainOrLoss = getGainOrLoss(this.first, this.second);
+		this.averagePrice = getAveragePrice(this.first, this.second); 
+		this.normalizedSlope = getNormalizedSlope(this.slope, this.averagePrice);
+		this.data = {
+			product_id:         this.product_id,
+			first: 				this.first,
+			second: 			this.second,
+			slope: 				this.slope,
+			averagePrice:   	this.averagePrice,   
+			normalizedSlope:  	this.normalizedSlope,
+			gainOrLoss:         this.gainOrLoss,
+			mostRecentPrice: 	this.mostRecentPrice
+		};
+
+	}
+	return this.data;
 };
