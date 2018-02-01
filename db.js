@@ -1,11 +1,30 @@
-const path = require('path');
-const app = require(require(path.join(__dirname, 'app')));
-const server = require('http').Server(app);
-const io = require('socket.io')(server);
-const config = require(path.join(__dirname, 'config')).config;
-const db = require(path.join(__dirname, 'db')).db;
-const chalk = require('chalk');
+const Sequelize = require('sequelize');
+const Op = Sequelize.Op;
+const urlString = "postgres://postgres:postgres@localhost/lydia";
+const db = new Sequelize(process.env.DATABASE_URL || urlString, {logging: false});
 
-var SYNC = process.env.SYNC || false;
-var PORT = process.env.PORT || 3001;
+const Product = db.define('product', ()=>{
+	//
+});
+//{e:eventType, E:eventTime, s:symbol, p:price, q:quantity, m:maker, a:tradeId}
+const Trade   = db.define('trade', {
+	e: {type: db.Sequelize.STRING}, //event type
+	E: {type: db.Sequelize.INTEGER}, //event time
+	s: {type: db.Sequelize.STRING},  //symbol BNBBTC
+	a: {type: db.Sequelize.INTEGER},  //trade id 
+	p: {type: db.Sequelize.FLOAT},   //price 
+	q: {type: db.Sequelize.FLOAT},   //quantity
+	f: {type: db.Sequelize.INTEGER},
+	l: {type: db.Sequelize.INTEGER},
+	T: {type: db.Sequelize.INTEGER},
+	m: {type: db.Sequelize.BOOLEAN},  
+	M: {type: db.Sequelize.BOOLEAN}, 
+});
 
+module.exports = {
+	db: db,
+	Op: Op,
+	Models: {
+		Trade: Trade
+	}
+};
