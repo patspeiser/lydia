@@ -10,8 +10,13 @@ var PORT = process.env.PORT || 3001;
 db.sync({force: true}).then( ()=>{
     io.on('connection', (socket)=>{
         setInterval( ()=>{
+            console.log(chalk.gray('getPrices'));
             socket.emit('getPrices');
-        }, 1000)
+        }, 5000);
+        setInterval( ()=>{
+            console.log(chalk.gray('analyzePrices'));
+            socket.emit('analyzePrices');
+        }, 10000);
     });
     server.listen(PORT, ()=>{
         console.log('binance up ...', PORT);
