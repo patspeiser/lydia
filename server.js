@@ -15,7 +15,7 @@ db.sync({force: false}).then( ()=>{
         }, 5000);
         setInterval( ()=>{
             console.log(chalk.gray('analyzePrices'));
-            socket.emit('analyzePrices');
+            socket.emit('analyzePrices', {amount: 5, interval: 'minutes'});
         }, 10000);
         socket.on('freshDataSets', (payload) =>{
             console.log('sets', payload.length);

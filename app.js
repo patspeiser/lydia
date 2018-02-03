@@ -22,8 +22,8 @@ socket.on('getPrices', (payload)=>{
 	});
 });
 
-socket.on('analyzePrices', ()=>{
-	analyzePrices();
+socket.on('analyzePrices', (payload)=>{
+	analyzePrices(payload);
 });
 
 app.get('/', (req, res, next)=>{
@@ -89,9 +89,9 @@ function createRecommendation(rows){
 	//determineTransaction(this.stats);
 };
 
-function analyzePrices(){
+function analyzePrices(conf){
 	this.now = new Date();
-	this.when = moment(this.now).subtract('5', 'minutes').format();
+	this.when = moment(this.now).subtract(conf.amount, conf.interval).format();
 	Models.Price.findAll({ where: {createdAt: {[Op.gt]: this.when}}}).then(rs=>{
 		this.prices = formatifier(rs, 'symbol');
 		Object.keys(this.prices).forEach(price=>{
