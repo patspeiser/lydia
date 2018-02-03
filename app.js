@@ -23,15 +23,7 @@ socket.on('getPrices', (payload)=>{
 });
 
 socket.on('analyzePrices', ()=>{
-	analyzePrices().then( (analyzedPrices)=>{
-		console.log(chalk.red('analyzedprices'));
-		this.dataSets = [];
-		analyzedPrices.forEach( (price) =>{ 
-			this.dataSets.push( getDataSetInfo(price) );
-		});
-		//socket.emit('freshDataSets', {analyzedPriceList: this.dataSets});
-		createRecommendation(this.dataSets);
-	});
+	analyzePrices();
 });
 
 app.get('/', (req, res, next)=>{
@@ -99,29 +91,25 @@ function createRecommendation(rows){
 
 function analyzePrices(){
 	this.now = new Date();
-	this.when = moment(this.now).subtract('10', 'minutes').format();
-	return new Promise( (resolve, reject)=> {
-		getSymbols().then( symbols =>{
-			this.promises = [];
-			symbols.forEach( symbol => {
-				this.promises.push(Models.Price.findAll({
-					where: {
-						symbol: symbol,
-						createdAt: {
-							[Op.gt]: this.when
-						}
-					},
-					order: [['id', 'DESC']],
-					limit: 500
-				}));
-			});
-			return Promise.all(this.promises).then( (data)=>{
-				if(data)
-					resolve(data);
-				reject('analyzePrices rejection. should make this useful');
-			});
+	this.when = moment(this.now).subtract('5', 'minutes').format();
+	Models.Price.findAll({ where: {createdAt: {[Op.gt]: this.when}}}).then(rs=>{
+		this.prices = formatifier(rs, 'symbol');
+		Object.keys(this.prices).forEach(price=>{
+			console.log(getDataSetInfo(this.prices[price]));
 		});
 	});
+};
+
+function formatifier(arrOfObjs, sortByKey){
+	this.formatted = {};
+	arrOfObjs.forEach(obj=>{
+		if(this.formatted[obj[sortByKey]]){
+			this.formatted[obj[sortByKey]].push(obj);
+		} else {
+			this.formatted[obj[sortByKey]] = [obj];
+		};
+	});
+	return this.formatted;
 };
 
 function getDataSetInfo(dataSet){
