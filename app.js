@@ -6,6 +6,8 @@ const Op = require(path.join(__dirname, 'db')).Op;
 const socket = require('socket.io-client')('http://localhost:3001');
 const moment = require('moment-timezone');
 const chalk = require('chalk');
+const config = require(path.join(__dirname, 'conf')).config;
+
 module.exports = app;
 
 socket.on('getPrices', (payload)=>{
@@ -17,13 +19,18 @@ socket.on('getPrices', (payload)=>{
 					symbol: ticker,
 					price:  tickers[ticker]
 				});
-			}
+			};
 		});
 	});
 });
 
 socket.on('analyzePrices', (payload)=>{
 	analyzePrices(payload);
+});
+socket.on('analyzeSymbols', (payload)=>{
+	getSymbols().then( symbols =>{
+		console.log(symbols);
+	});
 });
 
 app.get('/', (req, res, next)=>{
@@ -42,13 +49,6 @@ function getSymbols(){
 		});
 	});
 };
-/*
-getSymbols().then( (symbols)=>{
-	symbols.forEach( symbol => {
-		console.log(symbol);
-	})
-});
-*/
 
 function createRecommendation(rows){
 	//console.log(chalk.gray('creating recommendations'));
@@ -94,9 +94,11 @@ function analyzePrices(conf){
 	this.when = moment(this.now).subtract(conf.amount, conf.interval).format();
 	Models.Price.findAll({ where: {createdAt: {[Op.gt]: this.when}}}).then(rs=>{
 		this.prices = formatifier(rs, 'symbol');
+		this.dataSets = [];
 		Object.keys(this.prices).forEach(price=>{
-			console.log(getDataSetInfo(this.prices[price]));
+			this.dataSets.push(getDataSetInfo(this.prices[price]));
 		});
+		socket.emit('freshDataSets', {data: this.dataSets});
 	});
 };
 
