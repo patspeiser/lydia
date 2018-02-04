@@ -29,9 +29,24 @@ socket.on('analyzePrices', (payload)=>{
 });
 socket.on('analyzeSymbols', (payload)=>{
 	getSymbols().then( symbols =>{
-		console.log(symbols);
+		//console.log(symbols);
 	});
 });
+
+function getAccount(){
+	return new Promise( (resolve, reject)=>{
+		B.balance( (error, balances) =>{
+			if (error){ return reject(error);};
+			return resolve(balances);
+		});
+	});
+};
+function marketBuy(symbol, amount){
+	//B.marketBuy(symbol, amount);
+};
+function marketSell(symbol, amount){
+	//B.marketSell(symbol, amount);
+};
 
 app.get('/', (req, res, next)=>{
 	res.send('200');
@@ -75,7 +90,7 @@ function createRecommendation(rows){
 			}	
 		};
 	});
-	console.log(this.stats);
+	//console.log(this.stats);
 	Models.Rec.create({
 		highest_gain: this.stats.highestGain,
 		highest_loss: this.stats.highestLoss,
@@ -98,9 +113,31 @@ function analyzePrices(conf){
 		Object.keys(this.prices).forEach(price=>{
 			this.dataSets.push(getDataSetInfo(this.prices[price]));
 		});
+		analyzeBuy(this.dataSets);
 		socket.emit('freshDataSets', {data: this.dataSets});
 	});
 };
+
+function analyzeBuy(dataSets){
+	console.log('##buy');
+	this.dataSets = dataSets;
+	this.best = {};
+	this.dataSets.forEach( (set, index) =>{
+		if(set){
+			if(set.slope > 0){
+				if(!this.best.gainOrLoss){
+					this.best = set;
+				} else {
+					if (this.best.gainOrLoss < set.gainOrLoss){
+						console.log(chalk.red(JSON.stringify(this.best)), chalk.green(JSON.stringify(set)));
+						this.best = set;
+					};
+				}
+			}
+		};
+	});
+	console.log(this.best);
+}
 
 function formatifier(arrOfObjs, sortByKey){
 	this.formatted = {};

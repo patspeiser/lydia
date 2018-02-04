@@ -17,7 +17,7 @@ db.sync({force: false}).then( ()=>{
         setInterval( ()=>{
             console.log(chalk.gray('analyzePrices'));
             socket.emit('analyzePrices', {amount: 5, interval: 'minutes'});
-        }, 1000 * 60 * 2.5);
+        }, 1000 * 3);
         setInterval( ()=>{
             console.log(chalk.gray('analyzeSymbols'));
             socket.emit('analyzeSymbols');
