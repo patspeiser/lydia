@@ -6,8 +6,8 @@ const Op = require(path.join(__dirname, 'db')).Op;
 const socket = require('socket.io-client')('http://localhost:3001');
 const moment = require('moment-timezone');
 const chalk = require('chalk');
-const config = require(path.join(__dirname, 'conf')).config;
-
+const conf = require(path.join(__dirname, 'conf')).conf;
+B.options(conf);
 module.exports = app;
 
 socket.on('getPrices', (payload)=>{
@@ -32,8 +32,54 @@ socket.on('analyzeSymbols', (payload)=>{
 		//console.log(symbols);
 	});
 });
+socket.on('determineTransaction', (rec)=>{
+	console.log(rec);
+	this.baseCurrency = getBaseCurrency(rec.symbol);
+	this.quoteCurrency = getQuoteCurrency(rec.symbol);
+	getAccounts().then(accounts =>{
+		this.myBase = accounts[this.baseCurrency].available;
+		this.myQuote = accounts[this.quoteCurrency].available;
+		if(this.myBase > this.myQuote){
+			this.action = 'buy';
+			if(this.myBase > .01){
+				console.log('BUYING base', this.myBase, 'quote', this.myQuote);
+				this.amount = this.myBase / rec.mostRecentPrice;
+				//B.marketBuy(rec.symbol, this.amount);
+			}
+		};
+		if(this.myBase < this.myQuote){
+			this.action = 'sell';
+			if(this.myQuote > .01){
+				this.amount = this.myQuote;
+				console.log('SELLING base', this.myBase, 'quote', this.myQuote);
+				//B.marketSell(rec.symbol, this.amount);
+			}
+		}
+	});
+})
+socket.on('buy', (rec)=>{
+	this.base = getBaseCurrency(rec.symbol);
+	getAccounts().then( accounts =>{
+		this.myMoney = accounts[this.base].available;
+		if(this.myMoney > .01){
+			this.amount = this.myMoney / rec.mostRecentPrice;
+			B.marketBuy(rec.symbol, this.amount);
+		};
+	});
+});
 
-function getAccount(){
+socket.on('sell', (rec)=>{
+	this.quoteCurrency = getQuoteCurrency(rec.symbol);
+	getAccounts().then( accounts =>{
+		this.myMoney = accounts[this.base].available;
+		if(this.myMoney > .01){
+			this.amount = this.myMoney;
+			B.marketSell(rec.symbol, this.amount);
+		};
+	});
+});
+
+function getAccounts(){
 	return new Promise( (resolve, reject)=>{
 		B.balance( (error, balances) =>{
 			if (error){ return reject(error);};
@@ -42,12 +88,21 @@ function getAccount(){
 	});
 };
 function marketBuy(symbol, amount){
+	console.log('trying to buy');
 	//B.marketBuy(symbol, amount);
 };
 function marketSell(symbol, amount){
 	//B.marketSell(symbol, amount);
 };
-
+function getBaseCurrency(symbol){
+	//lol fuck
+	return symbol.slice(-3);
+}
+function getQuoteCurrency(symbol){
+	this.base = getBaseCurrency(symbol);
+	this.quoteCurrency = symbol.substring(0, symbol.indexOf(this.base));
+	return this.quoteCurrency;
+}
 app.get('/', (req, res, next)=>{
 	res.send('200');
 });
@@ -114,12 +169,11 @@ function analyzePrices(conf){
 			this.dataSets.push(getDataSetInfo(this.prices[price]));
 		});
 		analyzeBuy(this.dataSets);
-		socket.emit('freshDataSets', {data: this.dataSets});
+		socket.emit('rec', {rec: analyzeBuy(this.dataSets)});
 	});
 };
 
 function analyzeBuy(dataSets){
-	console.log('##buy');
 	this.dataSets = dataSets;
 	this.best = {};
 	this.dataSets.forEach( (set, index) =>{
@@ -129,14 +183,13 @@ function analyzeBuy(dataSets){
 					this.best = set;
 				} else {
 					if (this.best.gainOrLoss < set.gainOrLoss){
-						console.log(chalk.red(JSON.stringify(this.best)), chalk.green(JSON.stringify(set)));
 						this.best = set;
 					};
 				}
 			}
 		};
 	});
-	console.log(this.best);
+	return this.best;
 }
 
 function formatifier(arrOfObjs, sortByKey){

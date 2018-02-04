@@ -22,8 +22,8 @@ db.sync({force: false}).then( ()=>{
             console.log(chalk.gray('analyzeSymbols'));
             socket.emit('analyzeSymbols');
         }, 1000 * 20);
-        socket.on('freshDataSets', (payload) =>{
-            console.log('sets', payload.data.length);
+        socket.on('rec', (payload) =>{
+            socket.emit('determineTransaction', payload.rec);
         });
     });
     server.listen(PORT, ()=>{
