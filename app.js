@@ -57,27 +57,6 @@ socket.on('determineTransaction', (rec)=>{
 		}
 	});
 })
-socket.on('buy', (rec)=>{
-	this.base = getBaseCurrency(rec.symbol);
-	getAccounts().then( accounts =>{
-		this.myMoney = accounts[this.base].available;
-		if(this.myMoney > .01){
-			this.amount = this.myMoney / rec.mostRecentPrice;
-			B.marketBuy(rec.symbol, this.amount);
-		};
-	});
-});
-
-socket.on('sell', (rec)=>{
-	this.quoteCurrency = getQuoteCurrency(rec.symbol);
-	getAccounts().then( accounts =>{
-		this.myMoney = accounts[this.base].available;
-		if(this.myMoney > .01){
-			this.amount = this.myMoney;
-			B.marketSell(rec.symbol, this.amount);
-		};
-	});
-});
 
 function getAccounts(){
 	return new Promise( (resolve, reject)=>{
@@ -87,18 +66,14 @@ function getAccounts(){
 		});
 	});
 };
-function marketBuy(symbol, amount){
-	console.log('trying to buy');
-	//B.marketBuy(symbol, amount);
-};
-function marketSell(symbol, amount){
-	//B.marketSell(symbol, amount);
-};
+
 function getBaseCurrency(symbol){
 	//lol fuck
 	return symbol.slice(-3);
 }
+
 function getQuoteCurrency(symbol){
+	//doublefux!
 	this.base = getBaseCurrency(symbol);
 	this.quoteCurrency = symbol.substring(0, symbol.indexOf(this.base));
 	return this.quoteCurrency;

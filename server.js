@@ -23,6 +23,7 @@ db.sync({force: false}).then( ()=>{
             socket.emit('analyzeSymbols');
         }, 1000 * 20);
         socket.on('rec', (payload) =>{
+            //longer than X amount of time - do a trade
             socket.emit('determineTransaction', payload.rec);
         });
     });
