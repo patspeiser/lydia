@@ -7,6 +7,9 @@ const socket = require('socket.io-client')('http://localhost:3001');
 const moment = require('moment-timezone');
 const chalk = require('chalk');
 const conf = require(path.join(__dirname, 'conf')).conf;
+const loki = require('lokijs');
+const L = new loki('lydia.json');
+const recs = L.addCollection('recs');
 B.options(conf);
 module.exports = app;
 
@@ -32,31 +35,84 @@ socket.on('analyzeSymbols', (payload)=>{
 		//console.log(symbols);
 	});
 });
-socket.on('determineTransaction', (rec)=>{
-	console.log(rec);
-	this.baseCurrency = getBaseCurrency(rec.symbol);
-	this.quoteCurrency = getQuoteCurrency(rec.symbol);
-	getAccounts().then(accounts =>{
-		this.myBase = accounts[this.baseCurrency].available;
-		this.myQuote = accounts[this.quoteCurrency].available;
-		if(this.myBase > this.myQuote){
-			this.action = 'buy';
-			if(this.myBase > .01){
-				console.log('BUYING base', this.myBase, 'quote', this.myQuote);
-				this.amount = this.myBase / rec.mostRecentPrice;
-				//B.marketBuy(rec.symbol, this.amount);
-			}
-		};
-		if(this.myBase < this.myQuote){
-			this.action = 'sell';
-			if(this.myQuote > .01){
-				this.amount = this.myQuote;
-				console.log('SELLING base', this.myBase, 'quote', this.myQuote);
-				//B.marketSell(rec.symbol, this.amount);
-			}
-		}
+socket.on('determine', ()=>{
+	whenDidILastTrade().then( (lastTradeTime)=>{
+		determineTransaction(lastTradeTime);
+	}, (rejection)=>{
+		console.log('no last trade time', rejection);
+		//console.log(rejection);
 	});
-})
+	//when did I last trade?
+		//if time since is greater than minimum hold time
+			//if i don't own btc usd or eth 
+				//if its passed definite sell back time
+					//market sell back
+				// else 
+					//market sell back if certain criteria met
+			//else if i do own btc usd or eth
+				//market buy if cretai criteria met
+
+});
+
+function shwa(){
+
+}
+function whenDidILastTrade(){
+	return new Promise( (resolve, reject) => {
+		Models.Transaction.findAll({
+			order: [['id', 'DESC']],
+			limit: 1
+		}).then((rows)=>{
+			if(rows && rows.time){
+				resolve(rows[0].time);
+			} else {
+				resolve({});
+			}
+		}, (err)=>{
+			reject(err);
+		});
+	});
+};
+
+function determineTransaction(time){
+	this.recs = recs.find();
+	this.recData = formatifier(this.recs, 'highestGainSymbol');
+	this.totalPoints = 0;
+	Object.keys(this.recData).forEach( record =>{
+		this.totalPoints += this.recData[record].length; 
+	});
+	Object.keys(this.recData).forEach( record => {
+		console.log(record, Math.floor( (this.recData[record].length / this.totalPoints) * 100 ) );
+	});
+};
+
+function transact(){
+	if(rec.symbol){
+		console.log(rec);
+		this.baseCurrency = getBaseCurrency(rec.symbol);
+		this.quoteCurrency = getQuoteCurrency(rec.symbol);
+		getAccounts().then(accounts =>{
+			this.myBase = accounts[this.baseCurrency].available;
+			this.myQuote = accounts[this.quoteCurrency].available;
+			if(this.myBase > this.myQuote){
+				this.action = 'buy';
+				if(this.myBase > .01){
+					console.log('BUYING base', this.myBase, 'quote', this.myQuote);
+					this.amount = this.myBase / rec.mostRecentPrice;
+					//B.marketBuy(rec.symbol, this.amount);
+				}
+			};
+			if(this.myBase < this.myQuote){
+				this.action = 'sell';
+				if(this.myQuote > .01){
+					this.amount = this.myQuote;
+					console.log('SELLING base', this.myBase, 'quote', this.myQuote);
+					//B.marketSell(rec.symbol, this.amount);
+				}
+			}
+		});
+	};
+}
 
 function getAccounts(){
 	return new Promise( (resolve, reject)=>{
@@ -69,14 +125,18 @@ function getAccounts(){
 
 function getBaseCurrency(symbol){
 	//lol fuck
-	return symbol.slice(-3);
+	if(symbol){
+		return symbol.slice(-3);
+	}
 }
 
 function getQuoteCurrency(symbol){
 	//doublefux!
-	this.base = getBaseCurrency(symbol);
-	this.quoteCurrency = symbol.substring(0, symbol.indexOf(this.base));
-	return this.quoteCurrency;
+	if(symbol){
+		this.base = getBaseCurrency(symbol);
+		this.quoteCurrency = symbol.substring(0, symbol.indexOf(this.base));
+		return this.quoteCurrency;
+	};
 }
 app.get('/', (req, res, next)=>{
 	res.send('200');
@@ -96,7 +156,7 @@ function getSymbols(){
 };
 
 function createRecommendation(rows){
-	//console.log(chalk.gray('creating recommendations'));
+	console.log(chalk.gray('creating recommendations'));
 	this.stats = {
 		highestGain : 0,
 		highestLoss : 0
@@ -111,27 +171,10 @@ function createRecommendation(rows){
 				this.stats['highestGainAveragePrice'] = this.dataSet.averagePrice;
 			};
 		};
-		if (this.dataSet.slope < 0){
-			if(this.dataSet.gainOrLoss > this.stats.highestLoss){
-				this.stats.highestLoss = this.dataSet.gainOrLoss;
-				this.stats['highestLossSymbol'] = this.dataSet.symbol;
-				this.stats['highestLossMostRecentPrice'] = this.dataSet.mostRecentPrice;
-				this.stats['highestLossAveragePrice'] = this.dataSet.averagePrice;
-			}	
-		};
 	});
-	//console.log(this.stats);
-	Models.Rec.create({
-		highest_gain: this.stats.highestGain,
-		highest_loss: this.stats.highestLoss,
-		highest_gain_symbol: this.stats.highestGainSymbol,
-		highest_gain_most_recent_price: this.stats.highestGainMostRecentPrice,
-		highest_gain_average_price: this.stats.highestGainAveragePrice,
-		highest_loss_symbol: this.stats.highestLossSymbol,
-		highest_loss_most_recent_price: this.stats.highestLossMostRecentPrice,
-		highst_loss_average_price:  this.stats.highestLostAveragePrice
-	});
-	//determineTransaction(this.stats);
+	if(this.stats.highestGainSymbol){
+		recs.insert(this.stats);
+	};
 };
 
 function analyzePrices(conf){
@@ -144,7 +187,7 @@ function analyzePrices(conf){
 			this.dataSets.push(getDataSetInfo(this.prices[price]));
 		});
 		analyzeBuy(this.dataSets);
-		socket.emit('rec', {rec: analyzeBuy(this.dataSets)});
+		createRecommendation(this.dataSets);	
 	});
 };
 

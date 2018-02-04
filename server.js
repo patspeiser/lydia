@@ -8,23 +8,24 @@ const chalk = require('chalk');
 var SYNC = process.env.SYNC || false;
 var PORT = process.env.PORT || 3001;
 
-db.sync({force: false}).then( ()=>{
+db.sync({force: true, logging: true}).then( ()=>{
     io.on('connection', (socket)=>{
         setInterval( ()=>{
             console.log(chalk.gray('getPrices'));
             socket.emit('getPrices');
-        }, 1000 * 60 * .5);
-        setInterval( ()=>{
-            console.log(chalk.gray('analyzePrices'));
-            socket.emit('analyzePrices', {amount: 5, interval: 'minutes'});
-        }, 1000 * 3);
+        }, 1000 * 30);
         setInterval( ()=>{
             console.log(chalk.gray('analyzeSymbols'));
             socket.emit('analyzeSymbols');
         }, 1000 * 20);
+        setInterval( ()=>{
+            console.log(chalk.gray('analyzePrices'));
+            socket.emit('analyzePrices', {amount: 5, interval: 'minutes'});
+            socket.emit('determine');
+        }, 1000 * 10);
         socket.on('rec', (payload) =>{
             //longer than X amount of time - do a trade
-            socket.emit('determineTransaction', payload.rec);
+            //socket.emit('determineTransaction', payload.rec);
         });
     });
     server.listen(PORT, ()=>{

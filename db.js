@@ -30,7 +30,7 @@ const Rec = db.define('rec', {
 	highest_loss_symbol:  	 		{type: db.Sequelize.STRING}, 
 	highest_loss_most_recent_price: {type: db.Sequelize.FLOAT},
 	highest_loss_average_price: 	{type: db.Sequelize.FLOAT},
-})
+});
 
 const Symbol = db.define('symbol', {
 	symbol: {type: Sequelize.STRING}
@@ -41,6 +41,14 @@ const Price = db.define('price', {
 	price:  {type: Sequelize.FLOAT}
 });
 
+const Transaction = db.define('transaction', {
+	symbol: {type: db.Sequelize.STRING},
+	side:  	{type: db.Sequelize.STRING},
+	price:  {type: db.Sequelize.FLOAT},
+	amount: {type: db.Sequelize.FLOAT},
+	time: 	{type: db.Sequelize.FLOAT},
+});
+
 module.exports = {
 	db: db,
 	Op: Op,
@@ -48,6 +56,7 @@ module.exports = {
 		Trade: Trade,
 		Symbol: Symbol,
 		Price: Price,
-		Rec: Rec
+		Rec: Rec,
+		Transaction: Transaction
 	}
 };
