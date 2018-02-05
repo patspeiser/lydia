@@ -146,7 +146,7 @@ function getBestJawn(){
 };
 
 function transact(rec, sellBack){
-	console.log('rec', rec);
+	this.recs = recs.find();
 	if(rec.symbol){
 		console.log(rec);
 		this.baseCurrency = getBaseCurrency(rec.symbol);
@@ -158,25 +158,32 @@ function transact(rec, sellBack){
 			}).then( rows =>{
 				if(rows[0]){
 					this.sellBackSymbol = rows[0].symbol;
-					getAccounts.then( accounts =>{
+					getAccounts().then( accounts =>{
 						this.qC = this.quoteCurrency(this.sellBackSymbol);
 						this.amount = accounts[this.qc].available;
 						console.log('%^&^%', this.qC, this.amount);
 						B.marketSell(this.sellBackSymbol, this.amount);
-						this.recs.clear();
+						recs.clear();
 					});
-					
 				}
 			});
 		} else {
 			if(this.baseCurrency > this.quoteCurrency){
-				this.amount = 0; 
-				B.marketBuy(this.quoteCurrency, this.amount);
-			}
+				getAccounts().then(accounts => {
+					this.amount = accounts[this.baseCurrency].available;
+					B.marketBuy(this.quoteCurrency, this.amount);
+					recs.clear();
+				});
+			};
 			if(this.quoteCurrency > this.baseCurrency){
-				this.amount = 0;
-				B.marketSell(this.quoteCurrency, this.amount);
-			}
+				getAccounts().then(accounts=>{
+					this.amount = accounts[this.quoteCurrency].available;
+					console.log('^^^^^^', this.amount);
+					B.marketSell(this.quoteCurrency, this.amount);
+					recs.clear();
+				});
+				
+			};
 			//
 
 		}
