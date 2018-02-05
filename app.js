@@ -13,6 +13,11 @@ const recs = L.addCollection('recs');
 B.options(conf);
 module.exports = app;
 
+const dials = {
+	minimumTradeTime: -1,
+	sellDownTimeMultiplier: 3 	
+}
+
 socket.on('getPrices', (payload)=>{
 	B.prices( (err, tickers)=>{
 		Object.keys(tickers).forEach( (ticker)=>{
@@ -37,7 +42,7 @@ socket.on('analyzeSymbols', (payload)=>{
 });
 socket.on('determine', ()=>{
 	whenDidILastTrade().then( (lastTradeTime)=>{
-		determineTransaction(lastTradeTime);
+		determineTransaction(Date.now());
 	}, (rejection)=>{
 		console.log('no last trade time', rejection);
 		//console.log(rejection);
@@ -54,9 +59,10 @@ socket.on('determine', ()=>{
 
 });
 
-function shwa(){
+function clearRecs(){
+	return recs.clear();
+};
 
-}
 function whenDidILastTrade(){
 	return new Promise( (resolve, reject) => {
 		Models.Transaction.findAll({
@@ -66,7 +72,7 @@ function whenDidILastTrade(){
 			if(rows && rows.time){
 				resolve(rows[0].time);
 			} else {
-				resolve({});
+				resolve();
 			}
 		}, (err)=>{
 			reject(err);
@@ -75,44 +81,107 @@ function whenDidILastTrade(){
 };
 
 function determineTransaction(time){
+	if(!time){
+		getBestJawn().then( bestJawn =>{
+			if(bestJawn.symbol){
+				transact(bestJawn);
+			}
+		})
+	}
+	if(time){
+		this.now = Date.now();
+		if(Date.now() - time > dials.minimumTradeTime * dials.sellDownTimeMultiplier){
+			getBestJawn().then( bestJawn => {
+				console.log('bestjawn', bestJawn);
+				if(bestJawn.symbol){
+					transact(bestJawn, true);	
+				}
+			});
+			//if its been a really long time just sell back to the base currency 
+		};
+		if(true){
+			getBestJawn().then( bestJawn => {
+				console.log('bestjawn', bestJawn);
+				if(bestJawn.symbol){
+					transact(bestJawn);	
+				}
+			});
+
+			//getBestJawn().then( bestJawn => {
+
+			//});
+			//check if its at our goal price. if so transact
+		}
+	}
+	
+};
+
+function getBestJawn(){
+	this.bestJawn; 
 	this.recs = recs.find();
-	this.recData = formatifier(this.recs, 'highestGainSymbol');
-	this.totalPoints = 0;
-	Object.keys(this.recData).forEach( record =>{
-		this.totalPoints += this.recData[record].length; 
-	});
-	Object.keys(this.recData).forEach( record => {
-		console.log(record, Math.floor( (this.recData[record].length / this.totalPoints) * 100 ) );
+	if(this.recs){
+		this.total = 0;
+		this.highestPercentSymbol;
+		this.highestPercent=0; 
+		this.recData = formatifier(this.recs, 'highestGainSymbol');
+		Object.keys(this.recData).forEach( rec=>{
+			this.total += this.recData[rec].length;
+		});
+		Object.keys(this.recData).forEach( rec=>{
+			this.percent = Math.floor( (this.recData[rec].length / this.total) * 100);
+			if(this.percent > this.highestPercent){
+				this.highestPercentSymbol = rec;
+				this.highestPercent = this.percent;
+			};
+		});
+		this.bestJawn = { 
+			symbol: this.highestPercentSymbol, 
+			percent: this.highestPercent
+		};
+	};
+	return new Promise( (resolve, reject)=>{
+		resolve(this.bestJawn);
+		reject();
 	});
 };
 
-function transact(){
+function transact(rec, sellBack){
+	console.log('rec', rec);
 	if(rec.symbol){
 		console.log(rec);
 		this.baseCurrency = getBaseCurrency(rec.symbol);
 		this.quoteCurrency = getQuoteCurrency(rec.symbol);
-		getAccounts().then(accounts =>{
-			this.myBase = accounts[this.baseCurrency].available;
-			this.myQuote = accounts[this.quoteCurrency].available;
-			if(this.myBase > this.myQuote){
-				this.action = 'buy';
-				if(this.myBase > .01){
-					console.log('BUYING base', this.myBase, 'quote', this.myQuote);
-					this.amount = this.myBase / rec.mostRecentPrice;
-					//B.marketBuy(rec.symbol, this.amount);
+		if(sellBack){
+			Models.Transaction.findAll({
+				order: [['id', 'DESC']],
+				limit: 1
+			}).then( rows =>{
+				if(rows[0]){
+					this.sellBackSymbol = rows[0].symbol;
+					getAccounts.then( accounts =>{
+						this.qC = this.quoteCurrency(this.sellBackSymbol);
+						this.amount = accounts[this.qc].available;
+						console.log('%^&^%', this.qC, this.amount);
+						B.marketSell(this.sellBackSymbol, this.amount);
+						this.recs.clear();
+					});
+					
 				}
-			};
-			if(this.myBase < this.myQuote){
-				this.action = 'sell';
-				if(this.myQuote > .01){
-					this.amount = this.myQuote;
-					console.log('SELLING base', this.myBase, 'quote', this.myQuote);
-					//B.marketSell(rec.symbol, this.amount);
-				}
+			});
+		} else {
+			if(this.baseCurrency > this.quoteCurrency){
+				this.amount = 0; 
+				B.marketBuy(this.quoteCurrency, this.amount);
 			}
-		});
+			if(this.quoteCurrency > this.baseCurrency){
+				this.amount = 0;
+				B.marketSell(this.quoteCurrency, this.amount);
+			}
+			//
+
+		}
 	};
-}
+};
 
 function getAccounts(){
 	return new Promise( (resolve, reject)=>{
@@ -135,6 +204,7 @@ function getQuoteCurrency(symbol){
 	if(symbol){
 		this.base = getBaseCurrency(symbol);
 		this.quoteCurrency = symbol.substring(0, symbol.indexOf(this.base));
+		//fuck you it worked
 		return this.quoteCurrency;
 	};
 }
