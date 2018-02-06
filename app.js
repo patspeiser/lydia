@@ -115,6 +115,11 @@ function determineSide(symbol){
 
 };
 function transact(){
+	//always needs a pair.
+	//always needs a side
+	//always needs amount
+	//buying.   amount i can buy = total amount of money i have / cost of each item
+	//selling.  amount i can sell = amount in my wallet hup!
 	console.log('transact');
 };
 
