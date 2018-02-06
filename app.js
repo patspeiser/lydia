@@ -15,7 +15,8 @@ module.exports = app;
 
 const dials = {
 	minimumTradeTime: -1,
-	sellDownTimeMultiplier: 3 	
+	sellDownTimeMultiplier: 3,
+	goalPrice: 1.005 	
 }
 
 socket.on('getPrices', (payload)=>{
@@ -40,80 +41,81 @@ socket.on('analyzeSymbols', (payload)=>{
 		//console.log(symbols);
 	});
 });
+
 socket.on('determine', ()=>{
-	whenDidILastTrade().then( (lastTradeTime)=>{
-		determineTransaction(Date.now());
+	getLastTransaction().then( (lastTransaction)=>{
+		if(lastTransaction){
+			this.goalPrice = lastTransaction.price * dials.goalPrice;
+			this.lastTradeTime = lastTransaction.time;
+			this.now = Date.now();
+			if(this.now - this.lastTradeTime > dials.minimumTradeTime * dials.sellDownTimeMultiplier){
+				//if its been way to long sell back to base pair USD, BTC, ETH
+				this.symbol 	  = lastTransaction.symbol;
+				this.amountToSell = lastTransaction.amount;
+				if(lastTransaction.side === 'buy'){
+					//determine transaction sell pair	
+				};
+			} else if (this.now - this.lastTradeTime > dials.minimumTradeTime){
+				//been sorta long but not too long
+				//get the recommended jawn.
+				getBestJawn().then( jawn =>{
+					if(lastTransaction.symbol !== jawn.symbol){
+						//am i buying or selling
+						//then determine transaction
+					} else {
+						getLastTradePriceForSymbol(lastTransaction.symbol).then( lastTrade =>{
+							if(lastTrade && lastTrade >= this.goalPrice){
+							//determine transaction
+						};
+					});
+					}
+				});
+				//do I own either part of the recommended symbol
+				//if so buy or sell.
+			} else {
+				//hasn't been long enough don't need recommendations. just check goal price
+				getLastTradePriceForSymbol(lastTransaction.symbol).then( lastTrade =>{
+					if(lastTrade && lastTrade >= this.goalPrice){
+						//sell 
+					};
+				});
+				//did I meet goal
+			};
+		};
 	}, (rejection)=>{
 		console.log('no last trade time', rejection);
 		//console.log(rejection);
 	});
-	//when did I last trade?
-		//if time since is greater than minimum hold time
-			//if i don't own btc usd or eth 
-				//if its passed definite sell back time
-					//market sell back
-				// else 
-					//market sell back if certain criteria met
-			//else if i do own btc usd or eth
-				//market buy if cretai criteria met
-
 });
+/*
+const Transaction = db.define('transaction', {
+	symbol: {type: db.Sequelize.STRING},
+	side:  	{type: db.Sequelize.STRING},
+	price:  {type: db.Sequelize.FLOAT},
+	amount: {type: db.Sequelize.FLOAT},
+	time: 	{type: db.Sequelize.FLOAT},
+});
+*/
 
 function clearRecs(){
 	return recs.clear();
 };
 
-function whenDidILastTrade(){
+function getLastTransaction(){
 	return new Promise( (resolve, reject) => {
 		Models.Transaction.findAll({
 			order: [['id', 'DESC']],
 			limit: 1
 		}).then((rows)=>{
 			if(rows && rows.time){
-				resolve(rows[0].time);
+				resolve(rows[0]);
 			} else {
 				resolve();
-			}
+			};
 		}, (err)=>{
 			reject(err);
 		});
 	});
-};
-
-function determineTransaction(time){
-	if(!time){
-		getBestJawn().then( bestJawn =>{
-			if(bestJawn.symbol){
-				transact(bestJawn);
-			}
-		})
-	}
-	if(time){
-		this.now = Date.now();
-		if(Date.now() - time > dials.minimumTradeTime * dials.sellDownTimeMultiplier){
-			getBestJawn().then( bestJawn => {
-				console.log('bestjawn', bestJawn);
-				if(bestJawn.symbol){
-					transact(bestJawn, true);	
-				}
-			});
-			//if its been a really long time just sell back to the base currency 
-		};
-		if(true){
-			getBestJawn().then( bestJawn => {
-				console.log('bestjawn', bestJawn);
-				if(bestJawn.symbol){
-					transact(bestJawn);	
-				}
-			});
-
-			//getBestJawn().then( bestJawn => {
-
-			//});
-			//check if its at our goal price. if so transact
-		}
-	}
-	
 };
 
 function getBestJawn(){
@@ -147,48 +149,16 @@ function getBestJawn(){
 
 function transact(rec, sellBack){
 	this.recs = recs.find();
-	if(rec.symbol){
-		console.log(rec);
-		this.baseCurrency = getBaseCurrency(rec.symbol);
-		this.quoteCurrency = getQuoteCurrency(rec.symbol);
-		if(sellBack){
-			Models.Transaction.findAll({
-				order: [['id', 'DESC']],
-				limit: 1
-			}).then( rows =>{
-				if(rows[0]){
-					this.sellBackSymbol = rows[0].symbol;
-					getAccounts().then( accounts =>{
-						this.qC = this.quoteCurrency(this.sellBackSymbol);
-						this.amount = accounts[this.qc].available;
-						console.log('%^&^%', this.qC, this.amount);
-						B.marketSell(this.sellBackSymbol, this.amount);
-						recs.clear();
-					});
-				}
-			});
-		} else {
-			if(this.baseCurrency > this.quoteCurrency){
-				getAccounts().then(accounts => {
-					this.amount = accounts[this.baseCurrency].available;
-					B.marketBuy(this.quoteCurrency, this.amount);
-					recs.clear();
-				});
-			};
-			if(this.quoteCurrency > this.baseCurrency){
-				getAccounts().then(accounts=>{
-					this.amount = accounts[this.quoteCurrency].available;
-					console.log('^^^^^^', this.amount);
-					B.marketSell(this.quoteCurrency, this.amount);
-					recs.clear();
-				});
-				
-			};
-			//
-
-		}
-	};
 };
+
+
+function getLastTradePriceForSymbol(symbol){
+	return new Promise( (resolve, reject)=>{
+		B.prices(symbol, (error, ticker)=>{
+			resolve(ticker.symbol);
+		})	
+	});
+}
 
 function getAccounts(){
 	return new Promise( (resolve, reject)=>{
