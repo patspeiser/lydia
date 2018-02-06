@@ -49,37 +49,51 @@ socket.on('determine', ()=>{
 			this.lastTradeTime = lastTransaction.time;
 			this.now = Date.now();
 			if(this.now - this.lastTradeTime > dials.minimumTradeTime * dials.sellDownTimeMultiplier){
-				//if its been way to long sell back to base pair USD, BTC, ETH
 				this.symbol 	  = lastTransaction.symbol;
 				this.amountToSell = lastTransaction.amount;
 				if(lastTransaction.side === 'buy'){
-					//determine transaction sell pair	
+					transact(lastTransaction);
 				};
 			} else if (this.now - this.lastTradeTime > dials.minimumTradeTime){
-				//been sorta long but not too long
-				//get the recommended jawn.
-				getBestJawn().then( jawn =>{
-					if(lastTransaction.symbol !== jawn.symbol){
-						//am i buying or selling
-						//then determine transaction
+				getBestRec().then( rec =>{
+					if(lastTransaction.symbol !== rec.symbol){
+						this.recQuote = getQuoteCurrency(rec.symbol);
+						this.recBase  = getBaseCurrency(rec.symbol);
+						if(lastTransaction.side === 'buy'){
+							this.transactionQuote = getQuoteCurrency(lastTransaction.symbol);
+							if(this.recQuote === this.transactionQuote){
+								transact();
+							}
+							if(this.recBase === this.transactionQuote){
+								transact();
+							}
+						} ;
+						if(lastTransaction.side === 'sell'){
+							this.transactionBase  = getBaseCurrency(lastTransaction.symbol);
+							if(this.recBase === this.transactionBase){
+								transact();
+							};
+							if(this.recQuote === this.transactionBase){
+								transact();
+							};
+						};
 					} else {
 						getLastTradePriceForSymbol(lastTransaction.symbol).then( lastTrade =>{
 							if(lastTrade && lastTrade >= this.goalPrice){
-							//determine transaction
+							transact();	
 						};
 					});
 					}
 				});
-				//do I own either part of the recommended symbol
-				//if so buy or sell.
 			} else {
 				//hasn't been long enough don't need recommendations. just check goal price
-				getLastTradePriceForSymbol(lastTransaction.symbol).then( lastTrade =>{
-					if(lastTrade && lastTrade >= this.goalPrice){
-						//sell 
-					};
-				});
-				//did I meet goal
+				if(lastTransaction.side === 'buy'){
+					getLastTradePriceForSymbol(lastTransaction.symbol).then( lastTrade =>{
+						if(lastTrade && lastTrade >= this.goalPrice){
+							transact(lastTransaction); 
+						};
+					});
+				}
 			};
 		};
 	}, (rejection)=>{
@@ -96,6 +110,13 @@ const Transaction = db.define('transaction', {
 	time: 	{type: db.Sequelize.FLOAT},
 });
 */
+function determineSide(symbol){
+	this.symbol = 'ETHBTC';
+
+};
+function transact(){
+	console.log('transact');
+};
 
 function clearRecs(){
 	return recs.clear();
@@ -118,7 +139,7 @@ function getLastTransaction(){
 	});
 };
 
-function getBestJawn(){
+function getBestRec(){
 	this.bestJawn; 
 	this.recs = recs.find();
 	if(this.recs){
@@ -147,9 +168,7 @@ function getBestJawn(){
 	});
 };
 
-function transact(rec, sellBack){
-	this.recs = recs.find();
-};
+
 
 
 function getLastTradePriceForSymbol(symbol){
